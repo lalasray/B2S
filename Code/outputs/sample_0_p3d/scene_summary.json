@@ -1,0 +1,30 @@
+{
+  "label": "sofa",
+  "source_path": "Code/assets/library/sofa.obj",
+  "support_error": 0.0,
+  "collision_score": 13.667076110839844,
+  "fit_distance": 0.14563719928264618,
+  "sample_index": 0,
+  "predicted_object_class": 3,
+  "predicted_regime_histogram": [
+    2,
+    2,
+    60,
+    0
+  ],
+  "predicted_box": [
+    3.956747531890869,
+    3.7704131603240967,
+    0.9107881784439087,
+    -0.08089258521795273,
+    0.06625446677207947,
+    1.0167651176452637,
+    -0.002918936312198639
+  ],
+  "predicted_support_plane": [
+    0.5200849175453186,
+    0.14788687229156494,
+    0.9195424318313599,
+    0.5784700512886047
+  ]
+}

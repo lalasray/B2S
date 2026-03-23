@@ -1,0 +1,9 @@
+{
+  "chair": "Code/assets/library/chair.obj",
+  "table": "Code/assets/library/table.obj",
+  "bed": "Code/assets/library/bed.obj",
+  "sofa": "Code/assets/library/sofa.obj",
+  "stairs": "Code/assets/library/stairs.obj",
+  "storage": "Code/assets/library/storage.obj",
+  "room": "Code/assets/library/room.obj"
+}

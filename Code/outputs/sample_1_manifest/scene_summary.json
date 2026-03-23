@@ -1,0 +1,35 @@
+{
+  "label": "table",
+  "source_path": "Code/assets/library/table.obj",
+  "support_error": 0.0,
+  "collision_score": 57.80589294433594,
+  "fit_distance": 0.705982506275177,
+  "sample_index": 1,
+  "predicted_object_class": 1,
+  "predicted_regime_histogram": [
+    29,
+    6,
+    29,
+    0
+  ],
+  "predicted_box": [
+    7.907718181610107,
+    4.262509346008301,
+    1.832098364830017,
+    0.4925919771194458,
+    -0.031792521476745605,
+    1.377252221107483,
+    0.8373237252235413
+  ],
+  "predicted_support_plane": [
+    0.45318448543548584,
+    0.1340685337781906,
+    1.0362584590911865,
+    0.7085651755332947
+  ],
+  "physics": {
+    "support_energy": 0.8486897945404053,
+    "collision_energy": 0.048428431153297424,
+    "stability_energy": -0.02573588117957115
+  }
+}

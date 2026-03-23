@@ -5,3 +5,7 @@
 /scripts/__pycache__
 SMPL_python_v.1.1.0.zip
 WHAM/
+/Code/__pycache__
+/Code/b2s/__pycache__
+*.pt
+*.obj

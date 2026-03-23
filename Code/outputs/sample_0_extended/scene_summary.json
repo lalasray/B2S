@@ -1,0 +1,35 @@
+{
+  "label": "stairs",
+  "source_path": "Code/assets/library/stairs.obj",
+  "support_error": 0.0,
+  "collision_score": 59.01057052612305,
+  "fit_distance": 0.5895667672157288,
+  "sample_index": 0,
+  "predicted_object_class": 4,
+  "predicted_regime_histogram": [
+    2,
+    0,
+    62,
+    0
+  ],
+  "predicted_box": [
+    6.327298164367676,
+    3.4141383171081543,
+    1.7298765182495117,
+    0.4363660216331482,
+    0.38076305389404297,
+    1.338135838508606,
+    0.7252998352050781
+  ],
+  "predicted_support_plane": [
+    0.48070892691612244,
+    0.1973884254693985,
+    0.9918402433395386,
+    0.5703437924385071
+  ],
+  "physics": {
+    "support_energy": 0.7657759189605713,
+    "collision_energy": 0.12991824746131897,
+    "stability_energy": 0.4595135748386383
+  }
+}
