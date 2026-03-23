@@ -17,8 +17,8 @@ from PIL import Image, ImageTk
 
 
 VIDEO_EXTENSIONS = {".mp4", ".mov", ".m4v", ".avi", ".mkv", ".webm"}
-PREVIEW_WIDTH = 720
-PREVIEW_HEIGHT = 420
+DEFAULT_PREVIEW_WIDTH = 720
+DEFAULT_PREVIEW_HEIGHT = 420
 
 
 def parse_args() -> argparse.Namespace:
@@ -118,7 +118,10 @@ def ffprobe_rotation(video_path: Path) -> int:
             except (TypeError, ValueError):
                 pass
 
-    return rotation % 360
+    # Many phone videos store a display transform that should be applied to the
+    # raw decoded frame. OpenCV usually ignores it, so we apply the inverse of
+    # the stored transform for preview.
+    return (-rotation) % 360
 
 
 def format_seconds(value: float) -> str:
@@ -155,6 +158,13 @@ class VideoCropApp:
         self.current_frame_index = 0
         self.current_preview_image: ImageTk.PhotoImage | None = None
         self.rotation_degrees = 0
+        self.manual_rotation_degrees = 0
+        self.vertical_flip_enabled = True
+        self.last_frame = None
+        self.is_playing = False
+        self.playback_job: str | None = None
+        self.is_dragging_timeline = False
+        self.ignore_scale_callback = False
 
         self.start_seconds: float | None = None
         self.end_seconds: float | None = None
@@ -196,6 +206,7 @@ class VideoCropApp:
         ttk.Label(right_panel, text="Preview").grid(row=0, column=0, sticky="w")
         self.preview_label = ttk.Label(right_panel, anchor="center", relief="solid")
         self.preview_label.grid(row=1, column=0, sticky="nsew", pady=(6, 10))
+        self.preview_label.bind("<Configure>", self._on_preview_resized)
 
         self.position_scale = ttk.Scale(
             right_panel,
@@ -205,6 +216,8 @@ class VideoCropApp:
             command=self._on_scrub,
         )
         self.position_scale.grid(row=2, column=0, sticky="ew")
+        self.position_scale.bind("<ButtonPress-1>", self._on_timeline_press)
+        self.position_scale.bind("<ButtonRelease-1>", self._on_timeline_release)
 
         info_frame = ttk.Frame(right_panel)
         info_frame.grid(row=3, column=0, sticky="ew", pady=(10, 8))
@@ -223,15 +236,17 @@ class VideoCropApp:
         button_row = ttk.Frame(right_panel)
         button_row.grid(row=4, column=0, sticky="ew", pady=(4, 8))
 
-        ttk.Button(button_row, text="Mark Start", command=self._mark_start).grid(row=0, column=0, padx=(0, 8))
-        ttk.Button(button_row, text="Mark End", command=self._mark_end).grid(row=0, column=1, padx=(0, 8))
-        ttk.Button(button_row, text="Clear Marks", command=self._clear_marks).grid(row=0, column=2, padx=(0, 8))
-        ttk.Button(button_row, text="Crop Video", command=self._crop_video).grid(row=0, column=3)
+        self.play_button = ttk.Button(button_row, text="Play", command=self._toggle_playback)
+        self.play_button.grid(row=0, column=0, padx=(0, 8))
+        ttk.Button(button_row, text="Mark Start", command=self._mark_start).grid(row=0, column=1, padx=(0, 8))
+        ttk.Button(button_row, text="Mark End", command=self._mark_end).grid(row=0, column=2, padx=(0, 8))
+        ttk.Button(button_row, text="Clear Marks", command=self._clear_marks).grid(row=0, column=3, padx=(0, 8))
+        ttk.Button(button_row, text="Crop Video", command=self._crop_video).grid(row=0, column=4)
 
         hint_text = (
             "Tips: select a video on the left, drag the timeline to preview frames, "
             "then mark start and end before cropping. Shortcuts: S=start, E=end, "
-            "C=clear, Left/Right=step, Shift+Left/Right=jump, Space=crop."
+            "C=clear, Left/Right=step, Shift+Left/Right=jump, R=rotate, P=play/pause."
         )
         ttk.Label(right_panel, text=hint_text, wraplength=760).grid(row=5, column=0, sticky="w")
 
@@ -247,7 +262,11 @@ class VideoCropApp:
         self.root_window.bind("<Right>", lambda _event: self._step_frames(1))
         self.root_window.bind("<Shift-Left>", lambda _event: self._step_frames(-10))
         self.root_window.bind("<Shift-Right>", lambda _event: self._step_frames(10))
-        self.root_window.bind("<space>", lambda _event: self._crop_video())
+        self.root_window.bind("<KeyPress-r>", lambda _event: self._cycle_rotation())
+        self.root_window.bind("<KeyPress-R>", lambda _event: self._cycle_rotation())
+        self.root_window.bind("<KeyPress-p>", lambda _event: self._toggle_playback())
+        self.root_window.bind("<KeyPress-P>", lambda _event: self._toggle_playback())
+        self.root_window.bind("<space>", lambda _event: self._toggle_playback())
 
     def _choose_root(self) -> None:
         """Let the user visually choose the folder that contains videos."""
@@ -290,30 +309,50 @@ class VideoCropApp:
         self.frame_count = int(self.capture.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
         self.duration_seconds = ffprobe_duration(self.current_video_path)
         self.rotation_degrees = ffprobe_rotation(self.current_video_path)
+        self.manual_rotation_degrees = 0
+        self._stop_playback()
         self.current_frame_index = 0
         self.start_seconds = None
         self.end_seconds = None
 
         self.position_scale.configure(from_=0, to=max(self.frame_count - 1, 1))
-        self.position_scale.set(0)
+        self._set_timeline_position(0)
         self.video_var.set(f"Selected: {self.current_video_path}")
         self.output_var.set(f"Output: {build_output_path(self.current_video_path, self.suffix)}")
         self._update_range_text()
         self._show_frame(0)
 
+    def _on_preview_resized(self, _event: object) -> None:
+        """Redraw the last frame when the preview panel size changes."""
+        if self.last_frame is not None:
+            self._render_preview(self.last_frame)
+
     def _on_scrub(self, value: str) -> None:
         """Render the frame nearest to the slider position."""
         if self.capture is None:
             return
+        if self.ignore_scale_callback:
+            return
         self._show_frame(int(float(value)))
+
+    def _on_timeline_press(self, _event: object) -> None:
+        """Remember when the user starts dragging so playback does not fight the slider."""
+        self.is_dragging_timeline = True
+
+    def _on_timeline_release(self, _event: object) -> None:
+        """Jump playback to the released position and continue smoothly if playing."""
+        self.is_dragging_timeline = False
+        if self.capture is None:
+            return
+        self._show_frame(int(float(self.position_scale.get())))
 
     def _step_frames(self, delta: int) -> None:
         """Move the preview cursor by a small frame offset."""
         if self.capture is None:
             return
+        self._stop_playback()
         target_frame = self.current_frame_index + delta
-        self.position_scale.set(max(0, min(target_frame, max(self.frame_count - 1, 0))))
-        self._show_frame(int(self.position_scale.get()))
+        self._show_frame(target_frame)
 
     def _show_frame(self, frame_index: int) -> None:
         """Seek to one frame, convert it for Tk, and update the preview panel."""
@@ -327,12 +366,10 @@ class VideoCropApp:
             return
 
         self.current_frame_index = frame_index
+        self._set_timeline_position(frame_index)
         frame = self._apply_preview_rotation(frame)
-        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        image = Image.fromarray(rgb_frame)
-        image.thumbnail((PREVIEW_WIDTH, PREVIEW_HEIGHT))
-        self.current_preview_image = ImageTk.PhotoImage(image=image)
-        self.preview_label.configure(image=self.current_preview_image)
+        self.last_frame = frame
+        self._render_preview(frame)
 
         current_seconds = self._current_seconds()
         self.time_var.set(
@@ -349,13 +386,83 @@ class VideoCropApp:
 
     def _apply_preview_rotation(self, frame):
         """Rotate preview frames based on container metadata that OpenCV ignores."""
-        if self.rotation_degrees == 90:
-            return cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
-        if self.rotation_degrees == 180:
-            return cv2.rotate(frame, cv2.ROTATE_180)
-        if self.rotation_degrees == 270:
-            return cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+        rotation = (self.rotation_degrees + self.manual_rotation_degrees) % 360
+        if rotation == 90:
+            frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+        elif rotation == 180:
+            frame = cv2.rotate(frame, cv2.ROTATE_180)
+        elif rotation == 270:
+            frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+        if self.vertical_flip_enabled:
+            frame = cv2.flip(frame, 0)
         return frame
+
+    def _render_preview(self, frame) -> None:
+        """Scale the current frame to match the live preview area."""
+        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        image = Image.fromarray(rgb_frame)
+
+        target_width = max(self.preview_label.winfo_width(), DEFAULT_PREVIEW_WIDTH)
+        target_height = max(self.preview_label.winfo_height(), DEFAULT_PREVIEW_HEIGHT)
+        image.thumbnail((target_width, target_height))
+
+        self.current_preview_image = ImageTk.PhotoImage(image=image)
+        self.preview_label.configure(image=self.current_preview_image, text="")
+
+    def _cycle_rotation(self) -> None:
+        """Let the user manually rotate the preview when file metadata is inconsistent."""
+        if self.last_frame is None:
+            return
+        self._stop_playback()
+        self.manual_rotation_degrees = (self.manual_rotation_degrees + 90) % 360
+        self._show_frame(self.current_frame_index)
+
+    def _toggle_playback(self) -> None:
+        """Start or pause preview playback."""
+        if self.capture is None:
+            return
+        if self.is_playing:
+            self._stop_playback()
+            return
+        self.is_playing = True
+        self.play_button.configure(text="Pause")
+        self._play_next_frame()
+
+    def _play_next_frame(self) -> None:
+        """Advance playback using the video FPS as the timer."""
+        if not self.is_playing or self.capture is None:
+            return
+
+        if self.is_dragging_timeline:
+            delay_ms = max(int(1000 / max(self.fps, 1.0)), 15)
+            self.playback_job = self.root_window.after(delay_ms, self._play_next_frame)
+            return
+
+        next_frame = self.current_frame_index + 1
+        if next_frame >= max(self.frame_count, 1):
+            self._stop_playback()
+            return
+
+        self._show_frame(next_frame)
+
+        delay_ms = max(int(1000 / max(self.fps, 1.0)), 15)
+        self.playback_job = self.root_window.after(delay_ms, self._play_next_frame)
+
+    def _stop_playback(self) -> None:
+        """Cancel any scheduled playback callbacks and reset the button text."""
+        self.is_playing = False
+        self.play_button.configure(text="Play")
+        if self.playback_job is not None:
+            self.root_window.after_cancel(self.playback_job)
+            self.playback_job = None
+
+    def _set_timeline_position(self, frame_index: int) -> None:
+        """Update the slider without triggering a second seek through the callback."""
+        self.ignore_scale_callback = True
+        try:
+            self.position_scale.set(frame_index)
+        finally:
+            self.ignore_scale_callback = False
 
     def _mark_start(self) -> None:
         """Store the current preview time as the crop start."""
@@ -406,6 +513,19 @@ class VideoCropApp:
         else:
             overwrite = False
 
+        self._stop_playback()
+
+        filters = []
+        rotation = (self.rotation_degrees + self.manual_rotation_degrees) % 360
+        if rotation == 90:
+            filters.append("transpose=1")
+        elif rotation == 180:
+            filters.extend(["transpose=1", "transpose=1"])
+        elif rotation == 270:
+            filters.append("transpose=2")
+        if self.vertical_flip_enabled:
+            filters.append("vflip")
+
         command = [
             "ffmpeg",
             "-hide_banner",
@@ -416,10 +536,29 @@ class VideoCropApp:
             f"{self.end_seconds:.3f}",
             "-i",
             str(self.current_video_path),
-            "-c",
-            "copy",
-            str(output_path),
         ]
+
+        if filters:
+            command.extend(
+                [
+                    "-vf",
+                    ",".join(filters),
+                    "-c:v",
+                    "libx264",
+                    "-preset",
+                    "medium",
+                    "-crf",
+                    "18",
+                    "-c:a",
+                    "aac",
+                    "-b:a",
+                    "192k",
+                ]
+            )
+        else:
+            command.extend(["-c", "copy"])
+
+        command.append(str(output_path))
 
         try:
             subprocess.run(command, check=True)
@@ -431,6 +570,7 @@ class VideoCropApp:
 
     def _release_capture(self) -> None:
         """Release the previously open OpenCV handle before loading another video."""
+        self._stop_playback()
         if self.capture is not None:
             self.capture.release()
             self.capture = None

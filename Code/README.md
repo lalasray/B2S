@@ -215,4 +215,4 @@ If you are new to the repo, the easiest order is:
 - The recommended environment definition lives in [environment.yml](/home/lala/Documents/GitHub/B2S/environment.yml) and the lightweight pip fallback lives in [requirements.txt](/home/lala/Documents/GitHub/B2S/requirements.txt).
 - The WHAM batch runner uses the local `wham` conda env and runs `demo.py` in `--estimate_local_only` mode with `--save_pkl`.
 - The visual crop tool depends on local `ffmpeg`, `ffprobe`, OpenCV, and Pillow.
-- The visual crop tool supports keyboard shortcuts: `S` mark start, `E` mark end, `C` clear marks, arrow keys step frames, `Shift+Arrow` jumps more quickly, and `Space` runs the crop.
+- The visual crop tool supports keyboard shortcuts: `S` mark start, `E` mark end, `C` clear marks, `R` rotate preview, `P` or `Space` play/pause, and arrow keys step frames while `Shift+Arrow` jumps more quickly.
