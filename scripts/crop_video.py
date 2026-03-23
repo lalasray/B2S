@@ -25,11 +25,11 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--start",
-        help="Crop start time, for example 12.5 or 00:00:12.500.",
+        help="Crop start time, for example 12.5, 00:28, or 00:00:12.500.",
     )
     parser.add_argument(
         "--end",
-        help="Crop end time, for example 20.0 or 00:00:20.000.",
+        help="Crop end time, for example 30:40, 20.0, or 00:30:40.000.",
     )
     parser.add_argument(
         "--suffix",
@@ -53,7 +53,7 @@ def prompt(message: str, default: str | None = None) -> str:
 
 
 def normalize_time(value: str) -> str:
-    """Accept seconds or hh:mm:ss style input and return ffmpeg-friendly text."""
+    """Accept seconds, mm:ss, or hh:mm:ss input and return ffmpeg-friendly text."""
     value = value.strip()
     if not value:
         raise ValueError("Time value cannot be empty.")
