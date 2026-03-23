@@ -100,6 +100,8 @@ Export
 - `generate_dummy_data.py`: writes a dummy dataset to `Code/data/`.
 - `train_b2s.py`: trains the prototype and saves `Code/checkpoints/best.pt`.
 - `infer_and_fit_scene.py`: runs inference and exports a fitted object mesh plus an environment mesh.
+- `../scripts/run_wham_all_local.py`: batch WHAM local-only runner for all videos under `B2S_Data/`.
+- `../scripts/crop_video.py`: interactive local video crop helper that saves the clipped result beside the source file.
 
 ## Architecture Walkthrough
 
@@ -186,6 +188,8 @@ python Code/train_b2s.py --epochs 8 --batch-size 32
 python Code/infer_and_fit_scene.py --sample-index 0
 python Code/infer_and_fit_scene.py --sample-index 0 --asset-source manifest --asset-manifest path/to/assets.json
 python Code/infer_and_fit_scene.py --sample-index 0 --iterative-refine
+python scripts/crop_video.py --video B2S_Data/path/to/video.MOV
+conda run -n wham python scripts/run_wham_all_local.py --input-root B2S_Data --output-root B2S_Data/wham_all_local_outputs
 ```
 
 ## Typical workflow
@@ -207,3 +211,4 @@ If you are new to the repo, the easiest order is:
 - Mesh fitting and scene consistency use PyTorch3D primitives, plus learned box refinement, cross-visit memory supervision, and stronger physics-style consistency losses.
 - The code is meant as a strong starting point for replacing synthetic targets with real labels, better encoders, stronger scene decoders, and real asset repositories later.
 - The recommended environment definition lives in [environment.yml](/home/lala/Documents/GitHub/B2S/environment.yml) and the lightweight pip fallback lives in [requirements.txt](/home/lala/Documents/GitHub/B2S/requirements.txt).
+- The WHAM batch runner uses the local `wham` conda env and runs `demo.py` in `--estimate_local_only` mode with `--save_pkl`.
