@@ -2,6 +2,19 @@
 
 This folder contains a runnable prototype built from `arcitecture.md`.
 
+## Environment Setup
+
+Recommended setup uses the repo-level Conda file:
+
+```bash
+conda env create -f environment.yml
+conda activate b2s-pytorch3d
+```
+
+There is also a repo-level `requirements.txt`, but it is only a lightweight pip fallback.
+For this project, `environment.yml` is preferred because `pytorch3d` is much more reliable
+to install through conda than through pip on many systems.
+
 ## Big Picture
 
 The prototype follows this high-level flow:
@@ -167,6 +180,7 @@ These are simplified prototype losses, not a full paper-faithful implementation 
 ## Run
 
 ```bash
+conda activate b2s-pytorch3d
 python Code/generate_dummy_data.py
 python Code/train_b2s.py --epochs 8 --batch-size 32
 python Code/infer_and_fit_scene.py --sample-index 0
@@ -192,3 +206,4 @@ If you are new to the repo, the easiest order is:
 - Retrieval supports both a local library and a manifest-based provider. A manifest can point to local files or remote OBJ URLs; remote fetching was added but not network-tested in this sandbox.
 - Mesh fitting and scene consistency use PyTorch3D primitives, plus learned box refinement, cross-visit memory supervision, and stronger physics-style consistency losses.
 - The code is meant as a strong starting point for replacing synthetic targets with real labels, better encoders, stronger scene decoders, and real asset repositories later.
+- The recommended environment definition lives in [environment.yml](/home/lala/Documents/GitHub/B2S/environment.yml) and the lightweight pip fallback lives in [requirements.txt](/home/lala/Documents/GitHub/B2S/requirements.txt).

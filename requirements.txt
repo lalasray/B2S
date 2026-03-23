@@ -1,0 +1,11 @@
+# Preferred setup for this project is `environment.yml` because PyTorch3D
+# is platform-specific and is reliably resolved through conda channels here.
+#
+# This file is a lightweight pip fallback for the pure-Python side only.
+# After installing these packages, install a matching Torch/PyTorch3D stack
+# manually if your platform does not provide wheels automatically.
+
+numpy>=1.26,<3
+torch==2.4.1
+torchvision==0.19.1
+
