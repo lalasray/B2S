@@ -13,6 +13,7 @@ from mediapipe import tasks
 
 
 VIDEO_EXTENSIONS = {".mp4", ".mov", ".avi", ".mkv", ".m4v"}
+SKIP_DIR_NAMES = {"mediapipe_pose_3d", "wham_chunks_5s", "wham_local_outputs"}
 POSE_LANDMARKS = list(tasks.vision.PoseLandmark)
 
 
@@ -50,8 +51,10 @@ def build_header() -> list[str]:
 def discover_videos(input_dir: Path) -> list[Path]:
     return sorted(
         path
-        for path in input_dir.iterdir()
-        if path.is_file() and path.suffix.lower() in VIDEO_EXTENSIONS
+        for path in input_dir.rglob("*")
+        if path.is_file()
+        and path.suffix.lower() in VIDEO_EXTENSIONS
+        and not any(part in SKIP_DIR_NAMES for part in path.relative_to(input_dir).parts[:-1])
     )
 
 
@@ -84,6 +87,7 @@ def build_pose_landmarker(model_path: Path) -> tasks.vision.PoseLandmarker:
 
 def process_video(
     video_path: Path,
+    input_dir: Path,
     output_dir: Path,
     pose_landmarker: tasks.vision.PoseLandmarker,
 ) -> VideoResult:
@@ -91,8 +95,12 @@ def process_video(
     if not capture.isOpened():
         raise RuntimeError(f"Could not open video: {video_path}")
 
-    csv_path = output_dir / f"{video_path.stem}_mediapipe_pose3d.csv"
-    summary_path = output_dir / f"{video_path.stem}_mediapipe_pose3d_summary.json"
+    relative_parent = video_path.relative_to(input_dir).parent
+    per_video_output_dir = output_dir / relative_parent
+    per_video_output_dir.mkdir(parents=True, exist_ok=True)
+
+    csv_path = per_video_output_dir / f"{video_path.stem}_mediapipe_pose3d.csv"
+    summary_path = per_video_output_dir / f"{video_path.stem}_mediapipe_pose3d_summary.json"
     fps = capture.get(cv2.CAP_PROP_FPS) or 0.0
     total_frames = 0
     detected_frames = 0
@@ -176,12 +184,12 @@ def parse_args() -> argparse.Namespace:
         "--input-dir",
         type=Path,
         default=Path("/home/lala/Documents/GitHub/B2S/B2S_Data/Stairs"),
-        help="Directory containing stair videos.",
+        help="Directory containing videos to process recursively.",
     )
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("/home/lala/Documents/GitHub/B2S/B2S_Data/Stairs/mediapipe_pose_3d"),
+        default=Path("/home/lala/Documents/GitHub/B2S/B2S_Data/mediapipe_pose_3d"),
         help="Directory to write CSV and summary outputs.",
     )
     parser.add_argument(
@@ -208,8 +216,8 @@ def main() -> int:
 
     try:
         for video_path in videos:
-            print(f"Processing {video_path.name}...")
-            results.append(process_video(video_path, args.output_dir, pose_landmarker))
+            print(f"Processing {video_path}...")
+            results.append(process_video(video_path, args.input_dir, args.output_dir, pose_landmarker))
     finally:
         pose_landmarker.close()
 
