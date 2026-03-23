@@ -1,0 +1,36 @@
+{
+  "label": "chair",
+  "source_path": "Code/assets/library/chair.obj",
+  "support_error": 3.838539123535156e-05,
+  "collision_score": 24.829938888549805,
+  "fit_distance": 0.03261222690343857,
+  "sample_index": 0,
+  "predicted_object_class": 0,
+  "predicted_regime_histogram": [
+    4,
+    25,
+    35,
+    0
+  ],
+  "predicted_box": [
+    8.73427963256836,
+    8.653708457946777,
+    0.6699180006980896,
+    0.6352580785751343,
+    0.24167096614837646,
+    0.8938016295433044,
+    0.7483912110328674
+  ],
+  "predicted_support_plane": [
+    0.46509191393852234,
+    0.19991935789585114,
+    0.8938016295433044,
+    0.4661277234554291
+  ],
+  "physics": {
+    "support_energy": 0.891382098197937,
+    "collision_energy": 0.13748735189437866,
+    "stability_energy": 0.46581050753593445
+  },
+  "memory_visits": 1
+}

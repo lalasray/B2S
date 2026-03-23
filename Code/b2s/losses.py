@@ -97,14 +97,20 @@ def compute_losses(outputs: Dict[str, torch.Tensor], batch: Dict[str, torch.Tens
 
     # F/G. Scene constraint proxy losses.
     constraints = outputs["constraints"]
-    losses["constraints"] = _l1(constraints["free_space"], batch["free_space"]) + _l1(
-        constraints["support_height"], batch["support_height"]
-    ) + _l1(constraints["free_space"].mean(dim=-1, keepdim=True), batch["free_space"].mean(dim=-1, keepdim=True))
+    losses["constraints"] = (
+        _l1(constraints["free_space"], batch["free_space"])
+        + _bce(constraints["free_space_grid"], batch["free_space_grid"])
+        + _bce(constraints["support_grid"], batch["support_grid"])
+        + _bce(constraints["reachability_grid"], batch["reachability_grid"])
+        + _l1(constraints["topology_cues"], batch["topology_cues"])
+        + _l1(constraints["support_height"], batch["support_height"])
+    )
 
     # H/I/J. Scene geometry, semantics, and topology.
     scene = outputs["scene"]
     losses["scene"] = (
         _l1(scene["occupancy"], batch["occupancy"])
+        + _bce(scene["occupancy_grid"], batch["occupancy_grid"])
         + _l1(scene["floor_plane"], batch["floor_plane"])
         + _l1(scene["wall"], batch["wall"])
         + _l1(scene["support_plane"], batch["support_plane"])

@@ -114,6 +114,10 @@ class B2SModel(nn.Module):
         self.constraint_heads = nn.ModuleDict(
             {
                 "free_space": SequenceHead(h, data_config.occupancy_dim),
+                "free_space_grid": SequenceHead(h, data_config.occupancy_grid_dim),
+                "support_grid": SequenceHead(h, data_config.occupancy_grid_dim),
+                "reachability_grid": SequenceHead(h, data_config.occupancy_grid_dim),
+                "topology_cues": SequenceHead(h, 4),
                 "support_height": SequenceHead(h, 1),
             }
         )
@@ -121,6 +125,7 @@ class B2SModel(nn.Module):
             {
                 # Geometry-like descriptors.
                 "occupancy": SequenceHead(h, data_config.occupancy_dim),
+                "occupancy_grid": SequenceHead(h, data_config.occupancy_grid_dim),
                 "floor_plane": SequenceHead(h, 4),
                 "wall": SequenceHead(h, 4),
                 "support_plane": SequenceHead(h, 4),

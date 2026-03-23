@@ -9,6 +9,7 @@ import torch
 from torch.utils.data import Dataset
 
 from .config import DataConfig
+from .scene_constraints import SceneConstraintBuilder
 
 
 REGIME_TO_BEHAVIOR = {
@@ -299,21 +300,30 @@ def build_scene_targets(
 
     # retrieval_embedding is a compact target used by the retrieval/refinement side.
     retrieval_embedding = torch.cat([object_box[:4], support_plane[:3]])[:7]
+    # Build explicit voxel-grid targets so the scene-constraint path has a more realistic supervision signal.
+    builder = SceneConstraintBuilder(grid_size=config.occupancy_grid_size)
+    pseudo_joints = root.repeat_interleave(max(config.joint_dim // 3, 1), dim=0).view(root.shape[0], -1)
+    constraints = builder.build(root, pseudo_joints, contacts, reach, floor_event)
     return {
         "occupancy": occupancy.float(),
+        "occupancy_grid": constraints.occupancy.flatten().float(),
         "floor_plane": floor_plane.float(),
         "wall": wall.float(),
         "support_plane": support_plane.float(),
+        "support_grid": constraints.support_volume.flatten().float(),
         "object_box": object_box.float(),
         "object_class": object_class.long(),
         "semantic": semantic.long(),
         "interaction_zone": interaction_zone.float(),
+        "reachability_grid": constraints.reachability.flatten().float(),
         "room_graph": room_graph.float(),
         "door": door.long(),
         "stairs": stairs.long(),
         "topology_transition": topo_transition.long(),
         "support_height": support_height.float(),
         "free_space": free_space.float(),
+        "free_space_grid": constraints.free_space.flatten().float(),
+        "topology_cues": constraints.topology_cues.float(),
         "best_scene": best_scene.float(),
         "memory_target": best_scene.float() * 0.8 + 0.1,
         "paired_memory_target": paired_memory_target.float(),
@@ -357,5 +367,5 @@ def save_dataset(config: DataConfig, output_dir: str, seed: int = 7) -> Dict[str
 
 def load_dataset(split_path: str) -> B2SDataset:
     """Load one saved split into the dataset wrapper."""
-    samples = torch.load(split_path)
+    samples = torch.load(split_path, weights_only=True)
     return B2SDataset(samples)

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import random
+from dataclasses import asdict
 from pathlib import Path
 
 import torch
@@ -40,7 +41,7 @@ def ensure_dataset(data_config: DataConfig, dataset_dir: str, regenerate: bool) 
 
 def make_loader(path: Path, batch_size: int, shuffle: bool) -> DataLoader:
     """Create a DataLoader for one saved split."""
-    dataset = B2SDataset(torch.load(path))
+    dataset = B2SDataset(torch.load(path, weights_only=True))
     return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
 
 
@@ -103,8 +104,8 @@ def main() -> None:
             torch.save(
                 {
                     "model": model.state_dict(),
-                    "data_config": data_config,
-                    "train_config": train_config,
+                    "data_config": asdict(data_config),
+                    "train_config": asdict(train_config),
                     "val_total": best_val,
                 },
                 output_dir / "best.pt",

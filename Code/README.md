@@ -179,11 +179,12 @@ python Code/infer_and_fit_scene.py --sample-index 0 --iterative-refine
 If you are new to the repo, the easiest order is:
 
 1. Read `arcitecture.md` for the intended system design.
-2. Read `Code/README.md` for the practical implementation map.
-3. Open `b2s/dataset.py` to understand what the model is trained on.
-4. Open `b2s/model.py` to see how the branches are organized.
-5. Open `b2s/losses.py` to see what supervision each branch receives.
-6. Run training and then inference to inspect exported results.
+2. Read `architecture_checklist.md` to see what is done, partial, or still blocked.
+3. Read `Code/README.md` for the practical implementation map.
+4. Open `b2s/dataset.py` to understand what the model is trained on.
+5. Open `b2s/model.py` to see how the branches are organized.
+6. Open `b2s/losses.py` to see what supervision each branch receives.
+7. Run training and then inference to inspect exported results.
 
 ## Notes
 

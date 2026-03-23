@@ -38,20 +38,28 @@ def load_environment(path: str):
     return create_room_mesh()
 
 
+def load_configs_from_checkpoint(ckpt: dict, device: str) -> tuple[DataConfig, TrainConfig]:
+    """Load config dataclasses from a plain-dict checkpoint, with backward compatibility."""
+    data_cfg_raw = ckpt.get("data_config", {})
+    train_cfg_raw = ckpt.get("train_config", {})
+    data_config = DataConfig(**data_cfg_raw) if isinstance(data_cfg_raw, dict) else data_cfg_raw
+    train_config = TrainConfig(**train_cfg_raw) if isinstance(train_cfg_raw, dict) else train_cfg_raw
+    train_config.device = device
+    return data_config, train_config
+
+
 def main() -> None:
     """Run one-sample inference, retrieve an asset, fit it, and export results."""
     args = parse_args()
     # Restore both the learned weights and the saved config objects from training.
-    ckpt = torch.load(args.checkpoint, map_location=args.device)
-    data_config = ckpt.get("data_config", DataConfig())
-    train_config = ckpt.get("train_config", TrainConfig(device=args.device))
-    train_config.device = args.device
+    ckpt = torch.load(args.checkpoint, map_location=args.device, weights_only=True)
+    data_config, train_config = load_configs_from_checkpoint(ckpt, args.device)
 
     model = B2SModel(data_config, train_config).to(args.device)
     model.load_state_dict(ckpt["model"])
     model.eval()
 
-    dataset = B2SDataset(torch.load(args.dataset))
+    dataset = B2SDataset(torch.load(args.dataset, weights_only=True))
     # Pick one sample from the chosen split and add the batch dimension expected by the model.
     sample = dataset[args.sample_index]
     sensor = sample["sensor"].unsqueeze(0).to(args.device)
