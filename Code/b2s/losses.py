@@ -65,10 +65,15 @@ def compute_losses(outputs: Dict[str, torch.Tensor], batch: Dict[str, torch.Tens
 
     # D. Stationary/contact branch.
     contact = outputs["contact"]
+    # Encourage stable contacts during frames where the branch predicts support.
+    foot_slide = (torch.sigmoid(contact["contacts"][:, :, :1]) * batch["stride"].norm(dim=-1, keepdim=True)).mean()
+    contact_vel = (torch.sigmoid(contact["contacts"]) * batch["transition_root"].abs().mean(dim=-1, keepdim=True)).mean()
     losses["contact"] = (
         _bce(contact["contacts"], batch["contacts"])
         + _l1(contact["reach"], batch["reach"])
         + _ce(contact["affordance"], batch["affordance"])
+        + foot_slide
+        + contact_vel
     )
 
     # E. Human motion state estimation.
@@ -94,7 +99,7 @@ def compute_losses(outputs: Dict[str, torch.Tensor], batch: Dict[str, torch.Tens
     constraints = outputs["constraints"]
     losses["constraints"] = _l1(constraints["free_space"], batch["free_space"]) + _l1(
         constraints["support_height"], batch["support_height"]
-    )
+    ) + _l1(constraints["free_space"].mean(dim=-1, keepdim=True), batch["free_space"].mean(dim=-1, keepdim=True))
 
     # H/I/J. Scene geometry, semantics, and topology.
     scene = outputs["scene"]
@@ -111,6 +116,8 @@ def compute_losses(outputs: Dict[str, torch.Tensor], batch: Dict[str, torch.Tens
         + _ce(scene["door"], batch["door"])
         + _ce(scene["stairs"], batch["stairs"])
         + _ce(scene["topology_transition"], batch["topology_transition"])
+        + _l1(scene["floor_plane"][:, -1:], batch["root"][:, :, 2].amin(dim=1, keepdim=True))
+        + _l1(scene["support_plane"][:, 2:3], batch["support_height"])
     )
 
     # K. Multi-hypothesis training via best-of-K and diversity.
@@ -156,6 +163,7 @@ def compute_losses(outputs: Dict[str, torch.Tensor], batch: Dict[str, torch.Tens
         + _l1(collision_energy, collision_target)
         + _l1(stability_energy, stability_target)
         + positive_extent_penalty
+        + F.relu(refined_scene.abs().mean() - 2.0)
     )
 
     # Final weighted sum used by the trainer.

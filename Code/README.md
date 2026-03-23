@@ -78,6 +78,12 @@ Export
 - `b2s/mesh_utils.py`: PyTorch3D-backed OBJ IO, mesh transforms, surface sampling, and consistency metrics.
 - `b2s/assets.py`: local asset library, retrieval, fitting, support snapping, and scene export.
 - `b2s/retrieval.py`: retrieval provider abstraction with local and manifest-backed asset sources.
+- `b2s/preprocess.py`: real-sensor preprocessing helpers for sync, calibration, gravity alignment, normalization, and windowing.
+- `b2s/scene_constraints.py`: scene-constraint builder for free-space, support, reachability, and topology cues.
+- `b2s/memory_bank.py`: persistent scene-memory fusion utilities across repeated visits.
+- `b2s/refinement.py`: iterative refinement loop for fitted objects and lightweight deformation.
+- `b2s/deformation.py`: vertex-level deformation field for mesh refinement.
+- `b2s/smpl_pipeline.py`: WHAM-based adapter for 4D human reconstruction when external dependencies are available.
 - `generate_dummy_data.py`: writes a dummy dataset to `Code/data/`.
 - `train_b2s.py`: trains the prototype and saves `Code/checkpoints/best.pt`.
 - `infer_and_fit_scene.py`: runs inference and exports a fitted object mesh plus an environment mesh.
@@ -165,6 +171,7 @@ python Code/generate_dummy_data.py
 python Code/train_b2s.py --epochs 8 --batch-size 32
 python Code/infer_and_fit_scene.py --sample-index 0
 python Code/infer_and_fit_scene.py --sample-index 0 --asset-source manifest --asset-manifest path/to/assets.json
+python Code/infer_and_fit_scene.py --sample-index 0 --iterative-refine
 ```
 
 ## Typical workflow

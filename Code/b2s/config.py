@@ -33,6 +33,8 @@ class DataConfig:
     topology_transition_classes: int = 3
     scene_hypotheses: int = 3
     scene_templates: int = 12
+    occupancy_grid_size: int = 12
+    occupancy_grid_dim: int = 12 * 12 * 12
 
     @property
     def sensor_dim(self) -> int:
