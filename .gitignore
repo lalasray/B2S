@@ -9,3 +9,4 @@ WHAM/
 /Code/b2s/__pycache__
 *.pt
 *.obj
+/.vscode

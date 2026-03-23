@@ -102,6 +102,7 @@ Export
 - `infer_and_fit_scene.py`: runs inference and exports a fitted object mesh plus an environment mesh.
 - `../scripts/run_wham_all_local.py`: batch WHAM local-only runner for all videos under `B2S_Data/`.
 - `../scripts/crop_video.py`: interactive local video crop helper that saves the clipped result beside the source file.
+- `../scripts/crop_video_gui.py`: local visual crop tool with folder browsing, preview, scrubbing, and start/end selection.
 
 ## Architecture Walkthrough
 
@@ -189,6 +190,7 @@ python Code/infer_and_fit_scene.py --sample-index 0
 python Code/infer_and_fit_scene.py --sample-index 0 --asset-source manifest --asset-manifest path/to/assets.json
 python Code/infer_and_fit_scene.py --sample-index 0 --iterative-refine
 python scripts/crop_video.py --video B2S_Data/path/to/video.MOV
+python scripts/crop_video_gui.py --root B2S_Data
 conda run -n wham python scripts/run_wham_all_local.py --input-root B2S_Data --output-root B2S_Data/wham_all_local_outputs
 ```
 
@@ -212,3 +214,5 @@ If you are new to the repo, the easiest order is:
 - The code is meant as a strong starting point for replacing synthetic targets with real labels, better encoders, stronger scene decoders, and real asset repositories later.
 - The recommended environment definition lives in [environment.yml](/home/lala/Documents/GitHub/B2S/environment.yml) and the lightweight pip fallback lives in [requirements.txt](/home/lala/Documents/GitHub/B2S/requirements.txt).
 - The WHAM batch runner uses the local `wham` conda env and runs `demo.py` in `--estimate_local_only` mode with `--save_pkl`.
+- The visual crop tool depends on local `ffmpeg`, `ffprobe`, OpenCV, and Pillow.
+- The visual crop tool supports keyboard shortcuts: `S` mark start, `E` mark end, `C` clear marks, arrow keys step frames, `Shift+Arrow` jumps more quickly, and `Space` runs the crop.
