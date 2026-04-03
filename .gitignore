@@ -10,3 +10,4 @@ WHAM/
 *.pt
 *.obj
 /.vscode
+/.venv-wham
